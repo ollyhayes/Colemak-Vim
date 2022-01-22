@@ -1,11 +1,11 @@
 import * as vscode from 'vscode';
 import { Mode } from './mode/mode';
 import { globalState } from './state/globalState';
-import { SearchDirection } from './state/searchState';
 import { configuration } from './configuration/configuration';
 import { VimState } from './state/vimState';
 import { Logger } from './util/logger';
 import { VimError } from './error';
+import { SearchDirection } from './vimscript/pattern';
 
 class StatusBarImpl implements vscode.Disposable {
   // Displays the current state (mode, recording macro, etc.) and messages to the user
@@ -21,15 +21,19 @@ class StatusBarImpl implements vscode.Disposable {
 
   constructor() {
     this.statusBarItem = vscode.window.createStatusBarItem(
+      'primary',
       vscode.StatusBarAlignment.Left,
       Number.MIN_SAFE_INTEGER // Furthest right on the left
     );
+    this.statusBarItem.name = 'Vim Command Line';
     this.statusBarItem.show();
 
     this.recordedStateStatusBarItem = vscode.window.createStatusBarItem(
+      'showcmd',
       vscode.StatusBarAlignment.Right,
       Number.MAX_SAFE_INTEGER // Furthest left on the right
     );
+    this.recordedStateStatusBarItem.name = 'Vim Pending Command Keys';
     this.recordedStateStatusBarItem.show();
   }
 
@@ -54,12 +58,17 @@ class StatusBarImpl implements vscode.Disposable {
     // Text
     this.updateText(text);
 
-    // Foreground color
+    // StatusBarItem color
     if (!configuration.statusBarColorControl) {
-      this.statusBarItem.color = isError ? new vscode.ThemeColor('errorForeground') : undefined;
+      this.statusBarItem.color = isError
+        ? new vscode.ThemeColor('statusBarItem.errorForeground')
+        : undefined;
+      this.statusBarItem.backgroundColor = isError
+        ? new vscode.ThemeColor('statusBarItem.errorBackground')
+        : undefined;
     }
 
-    // Background color
+    // StatusBar color
     const shouldUpdateColor = configuration.statusBarColorControl && hasModeChanged;
     if (shouldUpdateColor) {
       this.updateColor(vimState.currentMode);
@@ -90,7 +99,11 @@ class StatusBarImpl implements vscode.Disposable {
 
     const text: string[] = [];
 
-    if (configuration.showmodename) {
+    if (
+      configuration.showmodename ||
+      vimState.currentMode === Mode.CommandlineInProgress ||
+      vimState.currentMode === Mode.SearchInProgressMode
+    ) {
       text.push(statusBarText(vimState));
       if (vimState.isMultiCursor) {
         text.push(' MULTI CURSOR ');
@@ -142,6 +155,7 @@ class StatusBarImpl implements vscode.Disposable {
 
     if (foreground !== undefined) {
       colorCustomizations['statusBar.foreground'] = foreground;
+      colorCustomizations['statusBar.debuggingForeground'] = foreground;
     }
 
     if (currentColorCustomizations !== colorCustomizations) {
@@ -184,8 +198,7 @@ export function statusBarText(vimState: VimState) {
         logger.warn(`globalState.searchState is undefined in SearchInProgressMode.`);
         return '';
       }
-      const leadingChar =
-        globalState.searchState.searchDirection === SearchDirection.Forward ? '/' : '?';
+      const leadingChar = globalState.searchState.direction === SearchDirection.Forward ? '/' : '?';
 
       const searchWithCursor = globalState.searchState.searchString.split('');
       searchWithCursor.splice(vimState.statusBarCursorCharacterPos, 0, cursorChar);

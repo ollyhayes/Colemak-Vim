@@ -14,6 +14,9 @@ import { IConfiguration } from '../src/configuration/iconfiguration';
 import { Position } from 'vscode';
 import { ModeHandlerMap } from '../src/mode/modeHandlerMap';
 import { EditorIdentity } from '../src/editorIdentity';
+import { StatusBar } from '../src/statusBar';
+import { Register } from '../src/register/register';
+import { ModeHandler } from '../src/mode/modeHandler';
 
 function getNiceStack(stack: string | undefined): string {
   return stack ? stack.split('\n').splice(2, 1).join('\n') : 'no stack available :(';
@@ -22,7 +25,7 @@ function getNiceStack(stack: string | undefined): string {
 function newTestGeneric<T extends ITestObject | ITestWithRemapsObject>(
   testObj: T,
   testFunc: Mocha.TestFunction | Mocha.ExclusiveTestFunction | Mocha.PendingTestFunction,
-  innerTest: (testObj: T) => Promise<void>
+  innerTest: (testObj: T) => Promise<ModeHandler>
 ): void {
   const stack = getNiceStack(new Error().stack);
 
@@ -77,6 +80,7 @@ interface ITestObject {
   keysPressed: string;
   end: string[];
   endMode?: Mode;
+  statusBar?: string;
   jumps?: string[];
   stub?: {
     stubClass: any;
@@ -323,7 +327,7 @@ function tokenizeKeySequence(sequence: string): string[] {
   return result;
 }
 
-async function testIt(testObj: ITestObject): Promise<void> {
+async function testIt(testObj: ITestObject): Promise<ModeHandler> {
   const editor = vscode.window.activeTextEditor;
   assert(editor, 'Expected an active editor');
 
@@ -338,6 +342,7 @@ async function testIt(testObj: ITestObject): Promise<void> {
   await editor.edit((builder) => {
     builder.insert(new Position(0, 0), testObj.start.join('\n').replace('|', ''));
   });
+  await editor.document.save();
   editor.selections = [new vscode.Selection(helper.startPosition, helper.startPosition)];
 
   // Generate a brand new ModeHandler for this editor
@@ -351,6 +356,8 @@ async function testIt(testObj: ITestObject): Promise<void> {
 
   const jumpTracker = globalState.jumpTracker;
   jumpTracker.clearJumps();
+
+  Register.clearAllRegisters();
 
   if (testObj.stub) {
     const confirmStub = sinon
@@ -383,8 +390,17 @@ async function testIt(testObj: ITestObject): Promise<void> {
     assert.strictEqual(actualMode, expectedMode, "Didn't enter correct mode.");
   }
 
+  if (testObj.statusBar !== undefined) {
+    assert.strictEqual(
+      StatusBar.getText(),
+      testObj.statusBar.replace('{FILENAME}', modeHandler.vimState.document.fileName),
+      'Status bar text is wrong.'
+    );
+  }
+
   // jumps: check jumps are correct if given
   if (testObj.jumps !== undefined) {
+    // TODO: Jumps should be specified by Positions, not line contents
     assert.deepStrictEqual(
       jumpTracker.jumps.map((j) => lines[j.position.line] || '<MISSING>'),
       testObj.jumps.map((t) => t.replace('|', '')),
@@ -402,9 +418,11 @@ async function testIt(testObj: ITestObject): Promise<void> {
       'Incorrect jump position found'
     );
   }
+
+  return modeHandler;
 }
 
-async function testItWithRemaps(testObj: ITestWithRemapsObject): Promise<void> {
+async function testItWithRemaps(testObj: ITestWithRemapsObject): Promise<ModeHandler> {
   const editor = vscode.window.activeTextEditor;
   assert(editor, 'Expected an active editor');
 
@@ -623,6 +641,7 @@ async function testItWithRemaps(testObj: ITestWithRemapsObject): Promise<void> {
       );
     }
   }
+  return modeHandler;
 }
 
 async function parseVimRCMappings(lines: string[]): Promise<void> {

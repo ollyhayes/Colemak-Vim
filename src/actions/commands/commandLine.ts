@@ -11,14 +11,14 @@ import { reportSearch } from '../../util/statusBarTextUtils';
 import { RecordedState } from '../../state/recordedState';
 import { TextEditor } from '../../textEditor';
 import { StatusBar } from '../../statusBar';
-import { commandParsers } from '../../cmd_line/subparser';
 import { getPathDetails, readDirectory } from '../../util/path';
 import { Clipboard } from '../../util/clipboard';
 import { VimError, ErrorCode } from '../../error';
-import { SearchDirection } from '../../state/searchState';
 import { scrollView } from '../../util/util';
 import { getWordLeftInText, getWordRightInText, WordType } from '../../textobject/word';
 import { Position } from 'vscode';
+import { builtinExCommands } from '../../vimscript/exCommandParser';
+import { SearchDirection } from '../../vimscript/pattern';
 
 /**
  * Commands that are only relevant when entering a command or search
@@ -82,7 +82,8 @@ class CommandTabInCommandline extends BaseCommand {
     const fileRegex = /^\s*\w+\s+/g;
     if (cmdRegex.test(evalCmd)) {
       // Command completion
-      newCompletionItems = Object.keys(commandParsers)
+      newCompletionItems = builtinExCommands
+        .map((pair) => pair[0][0] + pair[0][1])
         .filter((cmd) => cmd.startsWith(evalCmd))
         // Remove the already typed portion in the array
         .map((cmd) => cmd.slice(cmd.search(evalCmd) + evalCmd.length))
@@ -420,7 +421,7 @@ class CommandInsertInSearchMode extends BaseCommand {
         searchState.searchString.slice(vimState.statusBarCursorCharacterPos);
       vimState.statusBarCursorCharacterPos = Math.max(vimState.statusBarCursorCharacterPos - 1, 0);
     } else if (key === '<C-f>') {
-      await new CommandShowSearchHistory(searchState.searchDirection).exec(position, vimState);
+      await new CommandShowSearchHistory(searchState.direction).exec(position, vimState);
     } else if (key === '<C-u>') {
       searchState.searchString = searchState.searchString.slice(
         vimState.statusBarCursorCharacterPos
@@ -459,7 +460,7 @@ class CommandInsertInSearchMode extends BaseCommand {
 
       const count = vimState.recordedState.count || 1;
       let searchPos = vimState.cursorStopPosition;
-      let nextMatch: { pos: Position; match: boolean; index: number } | undefined;
+      let nextMatch: { pos: Position; index: number } | undefined;
       for (let i = 0; i < count; i++) {
         // Move cursor to next match
         nextMatch = searchState.getNextSearchMatchPosition(vimState.editor, searchPos);
@@ -472,7 +473,7 @@ class CommandInsertInSearchMode extends BaseCommand {
         StatusBar.displayError(
           vimState,
           VimError.fromCode(
-            searchState.searchDirection === SearchDirection.Backward
+            searchState.direction === SearchDirection.Backward
               ? ErrorCode.SearchHitTop
               : ErrorCode.SearchHitBottom,
             searchState.searchString
@@ -586,7 +587,10 @@ class CommandInsertRegisterContentInCommandLine extends BaseCommand {
     vimState.recordedState.registerName = this.keysPressed[1];
     const register = await Register.get(vimState.recordedState.registerName, this.multicursorIndex);
     if (register === undefined) {
-      StatusBar.displayError(vimState, VimError.fromCode(ErrorCode.NothingInRegister));
+      StatusBar.displayError(
+        vimState,
+        VimError.fromCode(ErrorCode.NothingInRegister, vimState.recordedState.registerName)
+      );
       return;
     }
 
@@ -632,7 +636,10 @@ class CommandInsertRegisterContentInSearchMode extends BaseCommand {
 
     const register = await Register.get(this.keysPressed[1], this.multicursorIndex);
     if (register === undefined) {
-      StatusBar.displayError(vimState, VimError.fromCode(ErrorCode.NothingInRegister));
+      StatusBar.displayError(
+        vimState,
+        VimError.fromCode(ErrorCode.NothingInRegister, this.keysPressed[1])
+      );
       return;
     }
 
@@ -782,10 +789,10 @@ class CommandCtrlLInSearchMode extends BaseCommand {
     }
 
     const nextMatch = globalState.searchState.getNextSearchMatchRange(vimState.editor, position);
-    if (nextMatch?.match) {
-      const line = vimState.document.lineAt(nextMatch.end).text;
-      if (nextMatch.end.character < line.length) {
-        globalState.searchState.searchString += line[nextMatch.end.character];
+    if (nextMatch) {
+      const line = vimState.document.lineAt(nextMatch.range.end).text;
+      if (nextMatch.range.end.character < line.length) {
+        globalState.searchState.searchString += line[nextMatch.range.end.character];
         vimState.statusBarCursorCharacterPos++;
       }
     }

@@ -98,6 +98,7 @@ suite('Mode Normal', () => {
     start: ['|one', 'two', 'three', 'four', 'five'],
     keysPressed: '3dd',
     end: ['|four', 'five'],
+    statusBar: '3 fewer lines',
   });
 
   newTest({
@@ -270,6 +271,14 @@ suite('Mode Normal', () => {
     start: ['|text;', 'text'],
     keysPressed: 'llllcw',
     end: ['text|', 'text'],
+    endMode: Mode.Insert,
+  });
+
+  newTest({
+    title: 'v$c deletes newline',
+    start: ['one', 't|wo', 'three'],
+    keysPressed: 'v$c',
+    end: ['one', 't|three'],
     endMode: Mode.Insert,
   });
 
@@ -447,6 +456,14 @@ suite('Mode Normal', () => {
     start: ['call|(() => 5)'],
     keysPressed: 'ci(',
     end: ['call(|)'],
+    endMode: Mode.Insert,
+  });
+
+  newTest({
+    title: "Can handle 'ci(' on closing inner parenthesis",
+    start: ['one ((|)) two'],
+    keysPressed: 'ci(',
+    end: ['one ((|)) two'],
     endMode: Mode.Insert,
   });
 
@@ -736,6 +753,30 @@ suite('Mode Normal', () => {
     start: ['one      "t|wo"three'],
     keysPressed: 'ca"',
     end: ['one|three'],
+    endMode: Mode.Insert,
+  });
+
+  newTest({
+    title: "'c2i\"' includes quotes, but not trailing whitespace",
+    start: ['one "t|wo"   ', 'three'],
+    keysPressed: 'c2i"',
+    end: ['one |   ', 'three'],
+    endMode: Mode.Insert,
+  });
+
+  newTest({
+    title: "'c2i\"' includes quotes, but not trailing whitespace 2",
+    start: ['one "t|wo"   ', 'three'],
+    keysPressed: 'c2i"',
+    end: ['one |   ', 'three'],
+    endMode: Mode.Insert,
+  });
+
+  newTest({
+    title: "'c2i\"' includes quotes, but not leading whitespace",
+    start: ['one      "t|wo"three'],
+    keysPressed: 'c2i"',
+    end: ['one      |three'],
     endMode: Mode.Insert,
   });
 
@@ -1535,21 +1576,15 @@ suite('Mode Normal', () => {
     });
   });
 
-  newTest({
-    title: '`. works correctly',
-    start: ['on|e'],
-    keysPressed: 'atwo<Esc>`.',
-    end: ['one|two'],
-  });
-
-  newTest({
-    title: "'. works correctly",
-    start: ['on|e'],
-    keysPressed: "atwo<Esc>'.",
-    end: ['one|two'],
-  });
-
   suite('g;', () => {
+    newTest({
+      title: 'g; before any changes throws E664',
+      start: ['one t|wo three'],
+      keysPressed: 'g;',
+      end: ['one t|wo three'],
+      statusBar: 'E664: changelist is empty',
+    });
+
     newTest({
       title: 'g; works correctly after insert',
       start: ['one', 'tw|o', 'three'],
@@ -1572,6 +1607,14 @@ suite('Mode Normal', () => {
     });
 
     // TODO: Test with multiple changes
+  });
+
+  newTest({
+    title: 'g, before any changes throws E664',
+    start: ['one t|wo three'],
+    keysPressed: 'g,',
+    end: ['one t|wo three'],
+    statusBar: 'E664: changelist is empty',
   });
 
   newTest({
@@ -2278,6 +2321,13 @@ suite('Mode Normal', () => {
     end: ['|x end', 'x', 'x', 'start'],
   });
 
+  newTest({
+    title: 'Search for `(`',
+    start: ['|one (two) three'],
+    keysPressed: '/(\n',
+    end: ['one |(two) three'],
+  });
+
   /**
    * The escaped `/` and `?` the next tests are necessary because otherwise they denote a search offset.
    */
@@ -2307,6 +2357,20 @@ suite('Mode Normal', () => {
     start: ['|__ASDF', 'asdf'],
     keysPressed: '/\\Casdf\n',
     end: ['__ASDF', '|asdf'],
+  });
+
+  newTest({
+    title: '/\\\\c does not trigger case (in)sensitivity',
+    start: ['|__\\c__'],
+    keysPressed: '/\\\\c\n',
+    end: ['__|\\c__'],
+  });
+
+  newTest({
+    title: '/\\\\\\c triggers case insensitivity',
+    start: ['|__\\ASDF', 'asdf'],
+    keysPressed: '/\\\\\\c\n',
+    end: ['__|\\ASDF', 'asdf'],
   });
 
   newTest({
@@ -2516,6 +2580,22 @@ suite('Mode Normal', () => {
     start: ['foo', '|fun', 'bar'],
     keysPressed: 'cc<Esc>jp',
     end: ['foo', '', 'bar', '|fun'],
+  });
+
+  newTest({
+    title: 'Vc preserves indentation of first line',
+    start: ['one', '  t|wo', '      three', 'four'],
+    keysPressed: 'Vj' + 'c',
+    end: ['one', '  |', 'four'],
+    endMode: Mode.Insert,
+  });
+
+  newTest({
+    title: 'cj preserves indentation of first line',
+    start: ['one', '  t|wo', '      three', 'four'],
+    keysPressed: 'cj',
+    end: ['one', '  |', 'four'],
+    endMode: Mode.Insert,
   });
 
   newTest({
@@ -2899,34 +2979,6 @@ suite('Mode Normal', () => {
     endMode: Mode.Normal,
   });
 
-  newTest({
-    title: '`] go to the end of the previously operated or put text',
-    start: ['hello|'],
-    keysPressed: 'a world<Esc>`]',
-    end: ['hello worl|d'],
-  });
-
-  newTest({
-    title: "'] go to the end of the previously operated or put text",
-    start: ['hello|'],
-    keysPressed: "a world<Esc>']",
-    end: ['hello worl|d'],
-  });
-
-  newTest({
-    title: '`[ go to the start of the previously operated or put text',
-    start: ['hello|'],
-    keysPressed: 'a world<Esc>`[',
-    end: ['hello| world'],
-  });
-
-  newTest({
-    title: "'[ go to the start of the previously operated or put text",
-    start: ['hello|'],
-    keysPressed: "a world<Esc>'[",
-    end: ['hello| world'],
-  });
-
   suite('can handle gn', () => {
     test(`gn selects the next match text`, async () => {
       await modeHandler.handleMultipleKeyEvents('ifoo\nhello world\nhello\nhello'.split(''));
@@ -3302,6 +3354,59 @@ suite('Mode Normal', () => {
       keysPressed: 'wma2w`a',
       end: ['hello |world and mars'],
       endMode: Mode.Normal,
+    });
+  });
+
+  suite('<C-g>', () => {
+    // TODO: test with untitled file
+    // TODO: test [count]<C-g>
+
+    newTest({
+      title: '<C-g> displays info about the file in status bar (line 1 of 3)',
+      start: ['o|ne', 'two', 'three'],
+      keysPressed: '<C-g>',
+      end: ['o|ne', 'two', 'three'],
+      statusBar: '"{FILENAME}" 3 lines --33%--',
+    });
+
+    newTest({
+      title: '<C-g> displays info about the file in status bar (line 2 of 3)',
+      start: ['one', '|two', 'three'],
+      keysPressed: '<C-g>',
+      end: ['one', '|two', 'three'],
+      statusBar: '"{FILENAME}" 3 lines --66%--',
+    });
+
+    newTest({
+      title: '<C-g> displays info about the file in status bar (line 3 of 3)',
+      start: ['one', 'two', 'thr|ee'],
+      keysPressed: '<C-g>',
+      end: ['one', 'two', 'thr|ee'],
+      statusBar: '"{FILENAME}" 3 lines --100%--',
+    });
+
+    newTest({
+      title: '<C-g> displays info about the file in status bar (line 1 of 1)',
+      start: ['o|ne'],
+      keysPressed: '<C-g>',
+      end: ['o|ne'],
+      statusBar: '"{FILENAME}" 1 line --100%--',
+    });
+
+    newTest({
+      title: '<C-g> has special message for empty file',
+      start: ['|'],
+      keysPressed: '<C-g>',
+      end: ['|'],
+      statusBar: '"{FILENAME}" --No lines in buffer--',
+    });
+
+    newTest({
+      title: '<C-g> includes "[Modified]" when file is dirty',
+      start: ['one', 't|wo', 'three'],
+      keysPressed: 'x' + '<C-g>',
+      end: ['one', 't|o', 'three'],
+      statusBar: '"{FILENAME}" [Modified] 3 lines --66%--',
     });
   });
 });

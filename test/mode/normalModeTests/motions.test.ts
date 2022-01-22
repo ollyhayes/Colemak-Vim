@@ -771,6 +771,7 @@ suite('Motions in Normal Mode', () => {
     start: ['one  |   ', 'one two one two'],
     keysPressed: '*',
     end: ['one  |   ', 'one two one two'],
+    statusBar: 'E348: No string under cursor',
   });
 
   newTest({
@@ -1037,6 +1038,15 @@ suite('Motions in Normal Mode', () => {
     });
 
     newTest({
+      title: 'Preserves desired cursor position when starting, but not completing, operator',
+      start: ['short line', 'very long line of text....|.'],
+      keysPressed: 'k' + 'd<Esc>' + 'j',
+      end: ['short line', 'very long line of text....|.'],
+    });
+  });
+
+  suite('Special marks', () => {
+    newTest({
       title: 'Jump to visual start `<',
       start: ['one |Xx two three'],
       keysPressed: 'v2ev`<',
@@ -1062,6 +1072,62 @@ suite('Motions in Normal Mode', () => {
       start: ['|one', '  Xxx', 'two', '  three'],
       keysPressed: "vjv1G'>",
       end: ['one', '  |Xxx', 'two', '  three'],
+    });
+
+    newTest({
+      title: 'Jump to visual line start `<',
+      start: ['one', 't|wo', 'three', 'four'],
+      keysPressed: 'Vj<Esc>' + 'gg' + '`<',
+      end: ['one', '|two', 'three', 'four'],
+    });
+
+    newTest({
+      title: 'Jump to visual line end `>',
+      start: ['one', 't|wo', 'three', 'four'],
+      keysPressed: 'Vj<Esc>' + 'gg' + '`>',
+      end: ['one', 'two', 'thre|e', 'four'],
+    });
+
+    newTest({
+      title: '`] go to the end of the previously operated or put text',
+      start: ['hello|'],
+      keysPressed: 'a world<Esc>`]',
+      end: ['hello worl|d'],
+    });
+
+    newTest({
+      title: "'] go to the end of the previously operated or put text",
+      start: ['hello|'],
+      keysPressed: "a world<Esc>']",
+      end: ['|hello world'],
+    });
+
+    newTest({
+      title: '`[ go to the start of the previously operated or put text',
+      start: ['hello|'],
+      keysPressed: 'a world<Esc>`[',
+      end: ['hello| world'],
+    });
+
+    newTest({
+      title: "'[ go to the start of the previously operated or put text",
+      start: ['hello|'],
+      keysPressed: "a world<Esc>'[",
+      end: ['|hello world'],
+    });
+
+    newTest({
+      title: '`. works correctly',
+      start: ['on|e'],
+      keysPressed: 'atwo<Esc>`.',
+      end: ['one|two'],
+    });
+
+    newTest({
+      title: "'. works correctly",
+      start: ['on|e'],
+      keysPressed: "atwo<Esc>'.",
+      end: ['|onetwo'],
     });
   });
 });

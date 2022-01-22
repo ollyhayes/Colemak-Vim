@@ -42,7 +42,6 @@ VSCodeVim is a Vim emulator for [Visual Studio Code](https://code.visualstudio.c
 - [Installation](#-installation)
   - [Mac setup](#mac)
   - [Windows setup](#windows)
-  - [Linux setup](#linux-setup)
 - [Settings](#%EF%B8%8F-settings)
   - [VSCodeVim settings](#vscodevim-settings)
   - [Neovim Integration](#neovim-integration)
@@ -393,6 +392,32 @@ Custom remappings are defined on a per-mode basis.
 
     As you press the key that you are trying to remap, do you see it outputted here? If not, it means we don't subscribe to those key events.
 
+### Vim modes
+
+Here are all the modes used by VSCodeVim:
+
+| Mode                  |
+| --------------------- |
+| Normal                |
+| Insert                |
+| Visual                |
+| VisualBlock           |
+| VisualLine            |
+| SearchInProgressMode  |
+| CommandlineInProgress |
+| Replace               |
+| EasyMotionMode        |
+| EasyMotionInputMode   |
+| SurroundInputMode     |
+| OperatorPendingMode   |
+| Disabled              |
+
+When rebinding keys in [keybindings.json](https://code.visualstudio.com/docs/getstarted/keybindings) using ["when clause context"](https://code.visualstudio.com/api/references/when-clause-contexts), it can be useful to know in which mode vim currently is. For example to write a "when clause" that checks if vim is currently in normal mode or visual mode it is possible to write the following:
+
+```json
+"when": "vim.mode == 'Normal' || vim.mode == 'Visual'",
+```
+
 ### Vim settings
 
 Configuration settings that have been copied from vim. Vim settings are loaded in the following sequence:
@@ -682,6 +707,26 @@ Usage examples:
 - `dae` - delete the whole buffer content.
 - `yie` - will yank the buffer content except leading and trailing blank lines.
 - `gUae` - transform the whole buffer to uppercase.
+
+### vim-textobj-arguments
+
+Similar to the argument text object in [targets.vim](https://github.com/wellle/targets.vim). It is an easy way to deal with arguments inside functions in most programming languages.
+
+| Motion Command | Description                        |
+| -------------- | ---------------------------------- |
+| `<operator>ia` | The argument exluding separators.  |
+| `<operator>aa` | The argument including separators. |
+
+Usage examples:
+
+- `cia` - change the argument under the cursor while preserving separators like comma `,`.
+- `daa` - will delete the whole argument under the cursor and the separators if applicable.
+
+| Setting                             | Description                  | Type        | Default Value |
+| ----------------------------------- | ---------------------------- | ----------- | ------------- |
+| vim.argumentObjectOpeningDelimiters | A list of opening delimiters | String list | ["(", "["]    |
+| vim.argumentObjectClosingDelimiters | A list of closing delimiters | String list | [")", "]"]    |
+| vim.argumentObjectSeparators        | A list of object separators  | String list | [","]         |
 
 ## 🎩 VSCodeVim tricks!
 
