@@ -2144,7 +2144,7 @@ class ActionJoinVisualBlockMode extends BaseCommand {
 @RegisterAction
 class ActionJoinNoWhitespace extends BaseCommand {
   modes = [Mode.Normal];
-  keys = ['g', 'J'];
+  keys = ['g', 'N'];
   override createsUndoPoint = true;
 
   // gJ is essentially J without the edge cases. ;-)
