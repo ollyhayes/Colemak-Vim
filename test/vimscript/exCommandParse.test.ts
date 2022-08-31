@@ -13,6 +13,7 @@ import { DeleteMarksCommand, MarksCommand } from '../../src/cmd_line/commands/ma
 import { PutExCommand } from '../../src/cmd_line/commands/put';
 import { QuitCommand } from '../../src/cmd_line/commands/quit';
 import { ReadCommand } from '../../src/cmd_line/commands/read';
+import { RetabCommand } from '../../src/cmd_line/commands/retab';
 import { RegisterCommand } from '../../src/cmd_line/commands/register';
 import { SetCommand } from '../../src/cmd_line/commands/set';
 import { SortCommand } from '../../src/cmd_line/commands/sort';
@@ -21,9 +22,10 @@ import { TabCommandType, TabCommand } from '../../src/cmd_line/commands/tab';
 import { WriteCommand } from '../../src/cmd_line/commands/write';
 import { YankCommand } from '../../src/cmd_line/commands/yank';
 import { ExCommand } from '../../src/vimscript/exCommand';
-import { exCommandParser } from '../../src/vimscript/exCommandParser';
+import { exCommandParser, NoOpCommand } from '../../src/vimscript/exCommandParser';
 import { Address } from '../../src/vimscript/lineRange';
 import { Pattern, SearchDirection } from '../../src/vimscript/pattern';
+import { ShiftCommand } from '../../src/cmd_line/commands/shift';
 
 function exParseTest(input: string, parsed: ExCommand) {
   test(input, () => {
@@ -53,6 +55,26 @@ suite('Ex command parsing', () => {
 
   suite(':!', () => {
     // TODO
+  });
+
+  suite(':#!', () => {
+    exParseTest(':#!', new NoOpCommand());
+    exParseTest(':#!123 abc! | s/one/two', new NoOpCommand());
+  });
+
+  suite(':>', () => {
+    exParseTest(':>', new ShiftCommand({ dir: '>', depth: 1, numLines: undefined }));
+    exParseTest(':>>', new ShiftCommand({ dir: '>', depth: 2, numLines: undefined }));
+    exParseTest(':>  >', new ShiftCommand({ dir: '>', depth: 2, numLines: undefined }));
+    exParseTest(':>>5', new ShiftCommand({ dir: '>', depth: 2, numLines: 5 }));
+    exParseTest(':> >   5', new ShiftCommand({ dir: '>', depth: 2, numLines: 5 }));
+  });
+  suite(':<', () => {
+    exParseTest(':<', new ShiftCommand({ dir: '<', depth: 1, numLines: undefined }));
+    exParseTest(':<<', new ShiftCommand({ dir: '<', depth: 2, numLines: undefined }));
+    exParseTest(':<  <', new ShiftCommand({ dir: '<', depth: 2, numLines: undefined }));
+    exParseTest(':<<5', new ShiftCommand({ dir: '<', depth: 2, numLines: 5 }));
+    exParseTest(':< <   5', new ShiftCommand({ dir: '<', depth: 2, numLines: 5 }));
   });
 
   suite(':bd[elete]', () => {
@@ -209,6 +231,15 @@ suite('Ex command parsing', () => {
       new FileCommand({ name: 'edit', bang: true, opt: [], cmd: undefined, file: 'abc.txt' })
     );
 
+    exParseTest(
+      ':edit abc\\ 1.txt',
+      new FileCommand({ name: 'edit', bang: false, opt: [], cmd: undefined, file: 'abc 1.txt' })
+    );
+    exParseTest(
+      ':edit! abc\\ 1.txt',
+      new FileCommand({ name: 'edit', bang: true, opt: [], cmd: undefined, file: 'abc 1.txt' })
+    );
+
     // TODO: Test with [++opt]
     // TODO: Test with [+cmd]
     // TODO: Test with #[count]
@@ -310,6 +341,15 @@ suite('Ex command parsing', () => {
     exParseTest(':reg', new RegisterCommand([]));
     exParseTest(':reg b1"2a', new RegisterCommand(['b', '1', '"', '2', 'a']));
     exParseTest(':reg b 1 " 2 a', new RegisterCommand(['b', '1', '"', '2', 'a']));
+  });
+
+  suite(':ret[ab]', () => {
+    exParseTest(':retab', new RetabCommand({ replaceSpaces: false, newTabstop: undefined }));
+    exParseTest(':retab 8', new RetabCommand({ replaceSpaces: false, newTabstop: 8 }));
+    exParseTest(':ret4', new RetabCommand({ replaceSpaces: false, newTabstop: 4 }));
+    exParseTest(':retab!', new RetabCommand({ replaceSpaces: true, newTabstop: undefined }));
+    exParseTest(':ret! 8', new RetabCommand({ replaceSpaces: true, newTabstop: 8 }));
+    exParseTest(':retab!4', new RetabCommand({ replaceSpaces: true, newTabstop: 4 }));
   });
 
   suite(':ri[ght]', () => {
