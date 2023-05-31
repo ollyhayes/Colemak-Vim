@@ -1,16 +1,19 @@
 import { alt, any, Parser, regexp, seq, string, succeed, whitespace } from 'parsimmon';
 
 export const numberParser: Parser<number> = regexp(/\d+/).map((num) => Number.parseInt(num, 10));
+export const integerParser: Parser<number> = regexp(/-?\d+/).map((num) => Number.parseInt(num, 10));
 
 export const bangParser: Parser<boolean> = string('!')
   .fallback(undefined)
   .map((bang) => bang !== undefined);
 
 export function nameAbbrevParser(abbrev: string, rest: string): Parser<string> {
-  const possibleNames = [...Array(rest.length + 1).keys()]
+  const suffixes = [...Array(rest.length + 1).keys()]
     .reverse()
-    .map((idx) => abbrev + rest.substring(0, idx));
-  return alt(...possibleNames.map(string));
+    .map((idx) => rest.substring(0, idx));
+  return string(abbrev)
+    .then(alt(...suffixes.map(string)))
+    .map((suffix) => abbrev + suffix);
 }
 
 // TODO: `:help cmdline-special`
