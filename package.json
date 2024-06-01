@@ -4,7 +4,7 @@
   "description": "Colemak-Vim emulation for Visual Studio Code",
   "icon": "images/icon.png",
   "publisher": "ollyhayes",
-  "version": "1.25.2",
+  "version": "1.27.3",
   "galleryBanner": {
     "color": "#e3f4ff",
     "theme": "light"
@@ -36,7 +36,7 @@
   ],
   "sideEffects": false,
   "activationEvents": [
-    "*",
+    "onStartupFinished",
     "onCommand:type"
   ],
   "qna": "https://vscodevim.herokuapp.com/",
@@ -113,12 +113,12 @@
       {
         "key": "tab",
         "command": "extension.vim_tab",
-        "when": "editorFocus && vim.active && vim.mode != 'Insert' && !inDebugRepl"
+        "when": "editorTextFocus && vim.active && vim.mode != 'Insert' && !inDebugRepl"
       },
       {
         "key": "shift+tab",
         "command": "extension.vim_shift+tab",
-        "when": "editorFocus && vim.active && vim.mode != 'Insert' && !inDebugRepl"
+        "when": "editorTextFocus && vim.active && vim.mode != 'Insert' && !inDebugRepl"
       },
       {
         "key": "left",
@@ -258,7 +258,7 @@
       {
         "key": "ctrl+p",
         "command": "extension.vim_ctrl+p",
-        "when": "suggestWidgetVisible && vim.active && vim.use<C-p> && !inDebugRepl || vim.mode == 'CommandlineInProgress' && vim.active && vim.use<C-p> && !inDebugRepl || vim.mode == 'SearchInProgressMode' && vim.active && vim.use<C-p> && !inDebugRepl"
+        "when": "editorTextFocus && vim.active && vim.use<C-p> && !inDebugRepl || vim.mode == 'CommandlineInProgress' && vim.active && vim.use<C-p> && !inDebugRepl || vim.mode == 'SearchInProgressMode' && vim.active && vim.use<C-p> && !inDebugRepl"
       },
       {
         "key": "ctrl+q",
@@ -615,7 +615,8 @@
         "vim.matchpairs": {
           "type": "string",
           "markdownDescription": "Characters that form pairs. The % command jumps from one to the other. Only character pairs are allowed that are different, thus you cannot jump between two double quotes. The characters must be separated by a colon. The pairs must be separated by a comma.",
-          "default": "(:),{:},[:]"
+          "default": "(:),{:},[:]",
+          "pattern": "^(.:.)?(,.:.)*$"
         },
         "vim.camelCaseMotion.enable": {
           "type": "boolean",
@@ -793,7 +794,8 @@
           "type": "number",
           "description": "How much search or command history should be remembered.",
           "default": 50,
-          "minimum": 1
+          "minimum": 1,
+          "maximum": 10000
         },
         "vim.autoindent": {
           "type": "boolean",
@@ -811,7 +813,7 @@
         },
         "vim.handleKeys": {
           "type": "object",
-          "description": "Delegate certain key combinations back to VSCode to be handled natively.",
+          "description": "Delegate certain key combinations back to VS Code to be handled natively.",
           "default": {
             "<C-d>": true,
             "<C-s>": false,
@@ -829,7 +831,10 @@
             "array"
           ],
           "description": "Status bar color when in Normal mode.",
-          "default": "#005f5f"
+          "default": [
+            "#005f5f",
+            "#ffffff"
+          ]
         },
         "vim.statusBarColors.insert": {
           "type": [
@@ -837,7 +842,10 @@
             "array"
           ],
           "description": "Status bar color when in Insert mode.",
-          "default": "#5f0000"
+          "default": [
+            "#5f0000",
+            "#ffffff"
+          ]
         },
         "vim.statusBarColors.visual": {
           "type": [
@@ -845,7 +853,10 @@
             "array"
           ],
           "description": "Status bar color when in Visual mode.",
-          "default": "#5f00af"
+          "default": [
+            "#5f00af",
+            "#ffffff"
+          ]
         },
         "vim.statusBarColors.visualline": {
           "type": [
@@ -853,7 +864,10 @@
             "array"
           ],
           "description": "Status bar color when in VisualLine mode.",
-          "default": "#005f5f"
+          "default": [
+            "#005f87",
+            "#ffffff"
+          ]
         },
         "vim.statusBarColors.visualblock": {
           "type": [
@@ -861,7 +875,10 @@
             "array"
           ],
           "description": "Status bar color when in VisualBlock mode.",
-          "default": "#86592d"
+          "default": [
+            "#86592d",
+            "#ffffff"
+          ]
         },
         "vim.statusBarColors.replace": {
           "type": [
@@ -869,7 +886,10 @@
             "array"
           ],
           "description": "Status bar color when in Replace mode.",
-          "default": "#00000"
+          "default": [
+            "#00000",
+            "#ffffff"
+          ]
         },
         "vim.statusBarColors.commandlineinprogress": {
           "type": [
@@ -877,7 +897,10 @@
             "array"
           ],
           "description": "Status bar color when in CommandLineInProgress mode.",
-          "default": "#007acc"
+          "default": [
+            "#007acc",
+            "#ffffff"
+          ]
         },
         "vim.statusBarColors.searchinprogressmode": {
           "type": [
@@ -885,7 +908,10 @@
             "array"
           ],
           "description": "Status bar color when in SearchInProgress mode.",
-          "default": "#007acc"
+          "default": [
+            "#007acc",
+            "#ffffff"
+          ]
         },
         "vim.statusBarColors.easymotionmode": {
           "type": [
@@ -893,7 +919,10 @@
             "array"
           ],
           "description": "Status bar color when in EasyMotion mode.",
-          "default": "#007acc"
+          "default": [
+            "#007acc",
+            "#ffffff"
+          ]
         },
         "vim.statusBarColors.easymotioninputmode": {
           "type": [
@@ -901,7 +930,10 @@
             "array"
           ],
           "description": "Status bar color when in EasyMotionInput mode.",
-          "default": "#007acc"
+          "default": [
+            "#007acc",
+            "#ffffff"
+          ]
         },
         "vim.statusBarColors.surroundinputmode": {
           "type": [
@@ -909,7 +941,10 @@
             "array"
           ],
           "description": "Status bar color when in SurroundInput mode.",
-          "default": "#007acc"
+          "default": [
+            "#007acc",
+            "#ffffff"
+          ]
         },
         "vim.visualstar": {
           "type": "boolean",
@@ -949,12 +984,12 @@
         },
         "vim.neovimUseConfigFile": {
           "type": "boolean",
-          "markdownDescription": "Use a config file for Neovim, specified by `vim.neovimConfigPath`.",
+          "markdownDescription": "Use a config file for Neovim, specified by `#vim.neovimConfigPath#`.",
           "default": false
         },
         "vim.neovimConfigPath": {
           "type": "string",
-          "markdownDescription": "Path to Neovim configuration file. `vim.neovimUseConfigFile` must be enabled. If path is left blank, Neovim will use its default config path, i.e. `~/.config/nvim/init.vim` or 'C:\\Users\\USERNAME\\AppData\\Local\\nvim\\init.vim'.",
+          "markdownDescription": "Path to Neovim configuration file. `#vim.neovimUseConfigFile#` must be enabled. If path is left blank, Neovim will use its default config path, i.e. `~/.config/nvim/init.vim` or 'C:\\Users\\USERNAME\\AppData\\Local\\nvim\\init.vim'.",
           "default": "",
           "scope": "machine"
         },
@@ -1120,8 +1155,9 @@
     },
     "languages": [
       {
-        "id": "vimrc",
+        "id": "Vimscript",
         "extensions": [
+          ".vim",
           ".vimrc"
         ],
         "configuration": "./language-configuration.json"
@@ -1129,9 +1165,9 @@
     ],
     "grammars": [
       {
-        "language": "vimrc",
-        "scopeName": "source.vimrc",
-        "path": "./syntaxes/vimrc.tmLanguage.json"
+        "language": "Vimscript",
+        "scopeName": "source.vimscript",
+        "path": "./syntaxes/vimscript.tmLanguage.json"
       }
     ]
   },
@@ -1141,8 +1177,8 @@
     "build-dev": "gulp build-dev",
     "build-test": "gulp prepare-test",
     "test": "node ./out/test/runTest.js",
-    "lint": "tslint --project .",
-    "lint:fix": "tslint --project . --fix",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "prettier": "prettier --write .",
     "prettier:check": "prettier --check .",
     "watch": "webpack -c webpack.dev.js --watch",
@@ -1152,7 +1188,7 @@
   "dependencies": {
     "diff-match-patch": "1.0.5",
     "lodash": "^4.17.21",
-    "neovim": "4.10.1",
+    "neovim": "5.1.0",
     "os-browserify": "0.3.0",
     "parsimmon": "^1.18.0",
     "path-browserify": "1.0.1",
@@ -1162,43 +1198,48 @@
     "util": "0.12.5"
   },
   "devDependencies": {
-    "@types/diff": "5.0.2",
-    "@types/diff-match-patch": "1.0.32",
+    "@types/diff": "5.2.1",
+    "@types/diff-match-patch": "1.0.36",
     "@types/glob": "8.1.0",
-    "@types/lodash": "4.14.191",
-    "@types/mocha": "10.0.1",
-    "@types/node": "16.18.13",
-    "@types/parsimmon": "1.10.6",
-    "@types/sinon": "10.0.13",
+    "@types/lodash": "4.17.4",
+    "@types/mocha": "10.0.6",
+    "@types/node": "18.19.33",
+    "@types/parsimmon": "1.10.9",
+    "@types/sinon": "17.0.3",
     "@types/vscode": "1.74.0",
-    "@vscode/test-electron": "2.3.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "@vscode/test-electron": "2.3.10",
     "circular-dependency-plugin": "^5.2.2",
     "clean-webpack-plugin": "4.0.0",
+    "eslint": "^8.52.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-jsdoc": "^48.0.0",
+    "eslint-plugin-prefer-arrow": "^1.2.3",
     "event-stream": "4.0.1",
-    "fork-ts-checker-webpack-plugin": "7.3.0",
-    "gulp": "4.0.2",
+    "fork-ts-checker-webpack-plugin": "9.0.2",
+    "gulp": "5.0.0",
     "gulp-bump": "3.2.0",
     "gulp-git": "2.10.1",
     "gulp-tag-version": "1.3.1",
     "gulp-typescript": "5.0.1",
-    "husky": "^8.0.3",
-    "lint-staged": "^13.1.2",
+    "husky": "^9.0.0",
+    "lint-staged": "^15.0.0",
     "minimist": "1.2.8",
-    "mocha": "10.2.0",
+    "mocha": "10.4.0",
     "plugin-error": "2.0.1",
-    "prettier": "2.8.4",
-    "sinon": "15.0.1",
-    "ts-loader": "9.4.2",
-    "tslint": "6.1.3",
-    "typescript": "4.9.5",
+    "prettier": "3.2.5",
+    "sinon": "18.0.0",
+    "ts-loader": "9.5.1",
+    "typescript": "5.4.5",
     "vsce": "2.15.0",
-    "webpack": "5.75.0",
-    "webpack-cli": "5.0.1",
-    "webpack-merge": "5.8.0",
+    "webpack": "5.91.0",
+    "webpack-cli": "5.1.4",
+    "webpack-merge": "5.10.0",
     "webpack-stream": "7.0.0"
   },
   "lint-staged": {
     "*.{ts,js,json,md,yml}": "prettier --write",
-    "*.{ts}": "tslint --fix"
+    "*.ts": "eslint --fix"
   }
 }

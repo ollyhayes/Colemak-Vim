@@ -1,8 +1,8 @@
-import { Clipboard } from './../util/clipboard';
-import { RecordedState } from './../state/recordedState';
-import { VimState } from './../state/vimState';
 import { readFileAsync, writeFileAsync } from 'platform/fs';
 import { Globals } from '../globals';
+import { RecordedState } from './../state/recordedState';
+import { VimState } from './../state/vimState';
+import { Clipboard } from './../util/clipboard';
 
 /**
  * This is included in the register file.
@@ -41,6 +41,7 @@ export class Register {
     '%', // Current file path (relative to workspace root)
     '#', // Previous file path (relative to workspace root)
     '_', // Black hole (always empty)
+    '=', // Expression register
   ];
 
   private static registers: Map<string, IRegisterContent[]>;
@@ -54,7 +55,7 @@ export class Register {
     vimState: VimState,
     content: RegisterContent,
     multicursorIndex?: number,
-    copyToUnnamed?: boolean
+    copyToUnnamed?: boolean,
   ): void {
     const register = vimState.recordedState.registerName;
 
@@ -114,11 +115,11 @@ export class Register {
    * Puts the content at the specified index of the multicursor Register.
    * If multicursorIndex === 0, the register will be completely overwritten. Otherwise, just that index will be.
    */
-  private static overwriteRegister(
+  public static overwriteRegister(
     vimState: VimState,
     register: string,
     content: RegisterContent,
-    multicursorIndex: number
+    multicursorIndex: number,
   ): void {
     if (multicursorIndex === 0 || !Register.registers.has(register)) {
       Register.registers.set(register, []);
@@ -134,7 +135,7 @@ export class Register {
       this.isClipboardRegister(register) &&
       !(content instanceof RecordedState)
     ) {
-      Clipboard.Copy(content);
+      void Clipboard.Copy(content);
     }
 
     this.processNumberedRegisters(vimState, content);
@@ -147,7 +148,7 @@ export class Register {
     vimState: VimState,
     register: string,
     content: RegisterContent,
-    multicursorIndex: number
+    multicursorIndex: number,
   ): void {
     if (!Register.registers.has(register)) {
       Register.registers.set(register, []);
@@ -181,7 +182,7 @@ export class Register {
     if (multicursorIndex === 0 && this.isClipboardRegister(register)) {
       const newContent = contentByCursor[multicursorIndex].text;
       if (!(newContent instanceof RecordedState)) {
-        Clipboard.Copy(newContent);
+        void Clipboard.Copy(newContent);
       }
     }
   }
@@ -191,7 +192,7 @@ export class Register {
    */
   public static setReadonlyRegister(
     register: '.' | '%' | ':' | '#' | '/',
-    content: RegisterContent
+    content: RegisterContent,
   ) {
     Register.registers.set(register, [
       {
@@ -268,7 +269,7 @@ export class Register {
    */
   public static async get(
     register: string,
-    multicursorIndex = 0
+    multicursorIndex = 0,
   ): Promise<IRegisterContent | undefined> {
     if (!Register.isValidRegister(register)) {
       throw new Error(`Invalid register ${register}`);
@@ -328,7 +329,7 @@ export class Register {
             version: REGISTER_FORMAT_VERSION,
             registers: serializableRegisters,
           }),
-          'utf8'
+          'utf8',
         );
       });
     }
@@ -337,14 +338,17 @@ export class Register {
   public static loadFromDisk(supportNode: boolean): void {
     if (supportNode) {
       Register.registers = new Map();
-      import('path').then((path) => {
-        readFileAsync(path.join(Globals.extensionStoragePath, '.registers'), 'utf8').then(
+      void import('path').then((path) => {
+        void readFileAsync(path.join(Globals.extensionStoragePath, '.registers'), 'utf8').then(
           (savedRegisters) => {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             const parsed = JSON.parse(savedRegisters);
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             if (parsed.version === REGISTER_FORMAT_VERSION) {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
               Register.registers = new Map(parsed.registers);
             }
-          }
+          },
         );
       });
     } else {

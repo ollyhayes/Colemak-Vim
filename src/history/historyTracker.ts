@@ -189,7 +189,7 @@ class HistoryStep {
         current = DocumentChange.replace(
           first.start,
           first.before + second.before.slice(intersectLength),
-          first.after.slice(0, first.after.length - intersectLength) + second.after
+          first.after.slice(0, first.after.length - intersectLength) + second.after,
         );
       } else {
         merged.push(current);
@@ -379,7 +379,6 @@ class ChangeList {
 }
 
 export class HistoryTracker {
-  public lastContentChanges: vscode.TextDocumentContentChangeEvent[];
   public currentContentChanges: vscode.TextDocumentContentChangeEvent[];
 
   private nextStepStartPosition: Position | undefined;
@@ -407,7 +406,6 @@ export class HistoryTracker {
       text: this.getDocumentText(),
       versionNumber: this.getDocumentVersion(),
     };
-    this.lastContentChanges = [];
     this.currentContentChanges = [];
   }
 
@@ -428,8 +426,8 @@ export class HistoryTracker {
    * the same character when the user does a document edit that would move the
    * text that was marked.
    */
-  private updateAndReturnMarks(): IMark[] {
-    const previousMarks = this.getAllCurrentDocumentMarks();
+  private updateAndReturnMarks(document: vscode.TextDocument): IMark[] {
+    const previousMarks = this.getAllMarksInDocument(document);
     const newMarks: IMark[] = [];
 
     // clone old marks into new marks
@@ -450,12 +448,12 @@ export class HistoryTracker {
             if (ch === '\n') {
               newMark.position = new Position(
                 Math.max(newMark.position.line - 1, 0),
-                newMark.position.character
+                newMark.position.character,
               );
             } else if (pos.line === newMark.position.line) {
               newMark.position = new Position(
                 newMark.position.line,
-                Math.max(newMark.position.character - 1, 0)
+                Math.max(newMark.position.character - 1, 0),
               );
             }
           }
@@ -478,12 +476,12 @@ export class HistoryTracker {
             if (ch === '\n') {
               newMark.position = new Position(
                 newMark.position.line + 1,
-                newMark.position.character
+                newMark.position.character,
               );
             } else if (pos.line === newMark.position.line) {
               newMark.position = new Position(
                 newMark.position.line,
-                newMark.position.character + 1
+                newMark.position.character + 1,
               );
             }
           }
@@ -517,33 +515,64 @@ export class HistoryTracker {
   }
 
   /**
-   * @returns all local and global marks in this editor
+   * @returns all local and global marks in the given editor
    */
-  private getAllCurrentDocumentMarks(): IMark[] {
-    const globalMarks = HistoryStep.globalMarks.filter(
-      (mark) => mark.document === vscode.window.activeTextEditor?.document
-    );
+  private getAllMarksInDocument(document: vscode.TextDocument): IMark[] {
+    const globalMarks = HistoryStep.globalMarks.filter((mark) => mark.document === document);
     return [...this.getLocalMarks(), ...globalMarks];
   }
 
   /**
    * Adds a mark.
    */
-  public addMark(position: Position, markName: string): void {
-    // Sets previous context mark (adds current position to jump list).
-
+  public addMark(document: vscode.TextDocument, position: Position, markName: string): void {
     if (markName === "'" || markName === '`') {
-      return globalState.jumpTracker.recordJump(Jump.fromStateNow(this.vimState));
+      globalState.jumpTracker.recordJump(Jump.fromStateNow(this.vimState));
+    } else if (markName === '<') {
+      if (this.vimState.lastVisualSelection) {
+        this.vimState.lastVisualSelection.start = position;
+      } else {
+        this.vimState.lastVisualSelection = {
+          mode: Mode.Visual,
+          start: position,
+          end: position,
+        };
+      }
+      if (
+        this.vimState.lastVisualSelection.mode === Mode.Visual &&
+        this.vimState.lastVisualSelection.end.isBefore(this.vimState.lastVisualSelection.start)
+      ) {
+        // HACK: Visual mode representation is stupid
+        this.vimState.lastVisualSelection.end = this.vimState.lastVisualSelection.start;
+      }
+    } else if (markName === '>') {
+      if (this.vimState.lastVisualSelection) {
+        this.vimState.lastVisualSelection.end = position.getRight();
+      } else {
+        this.vimState.lastVisualSelection = {
+          mode: Mode.Visual,
+          start: position.getRight(),
+          end: position.getRight(),
+        };
+      }
+      if (
+        this.vimState.lastVisualSelection.mode === Mode.Visual &&
+        this.vimState.lastVisualSelection.start.isAfter(this.vimState.lastVisualSelection.end)
+      ) {
+        // HACK: Visual mode representation is stupid
+        this.vimState.lastVisualSelection.start = this.vimState.lastVisualSelection.end.getLeft();
+        this.vimState.lastVisualSelection.end = this.vimState.lastVisualSelection.start;
+      }
+    } else {
+      const isUppercaseMark = markName.toUpperCase() === markName;
+      const newMark: IMark = {
+        position,
+        name: markName,
+        isUppercaseMark,
+        document: isUppercaseMark ? document : undefined,
+      };
+      this.putMarkInList(newMark);
     }
-
-    const isUppercaseMark = markName.toUpperCase() === markName;
-    const newMark: IMark = {
-      position,
-      name: markName,
-      isUppercaseMark,
-      document: isUppercaseMark ? vscode.window.activeTextEditor?.document : undefined,
-    };
-    this.putMarkInList(newMark);
   }
 
   /**
@@ -614,7 +643,7 @@ export class HistoryTracker {
     this.undoStack.removeMarks(markNames);
 
     HistoryStep.globalMarks = HistoryStep.globalMarks.filter(
-      (mark) => mark.name === '' || !markNames.includes(mark.name)
+      (mark) => mark.name === '' || !markNames.includes(mark.name),
     );
   }
 
@@ -690,7 +719,7 @@ export class HistoryTracker {
         this.undoStack.pushChange(
           added
             ? DocumentChange.insert(currentPosition, text)
-            : DocumentChange.delete(currentPosition, text)
+            : DocumentChange.delete(currentPosition, text),
         );
       }
 
@@ -733,7 +762,7 @@ export class HistoryTracker {
 
       currentHistoryStep.merge(this.vimState.document);
 
-      currentHistoryStep.marks = this.updateAndReturnMarks();
+      currentHistoryStep.marks = this.updateAndReturnMarks(this.vimState.document);
 
       const changes = currentHistoryStep.changes;
       if (changes) {
@@ -766,7 +795,9 @@ export class HistoryTracker {
     const changes = step.changes.length === 1 ? `1 change` : `${step.changes.length} changes`;
     StatusBar.setText(
       this.vimState,
-      `${changes}; before #${this.undoStack.getCurrentHistoryStepIndex() + 1}  ${step.howLongAgo()}`
+      `${changes}; before #${
+        this.undoStack.getCurrentHistoryStepIndex() + 1
+      }  ${step.howLongAgo()}`,
     );
 
     return step.cursorStart;
@@ -793,7 +824,7 @@ export class HistoryTracker {
     const changes = step.changes.length === 1 ? `1 change` : `${step.changes.length} changes`;
     StatusBar.setText(
       this.vimState,
-      `${changes}; after #${this.undoStack.getCurrentHistoryStepIndex()}  ${step.howLongAgo()}`
+      `${changes}; after #${this.undoStack.getCurrentHistoryStepIndex()}  ${step.howLongAgo()}`,
     );
 
     return step.cursorStart;
@@ -840,7 +871,7 @@ export class HistoryTracker {
           // Modify & replace the change to avoid undoing the newline embedded in the change
           change = DocumentChange.insert(
             new Position(change.start.line + 1, 0),
-            change.after.slice(change.after.lastIndexOf('\n'))
+            change.after.slice(change.after.lastIndexOf('\n')),
           );
           done = true;
         } else if (newlines.length > 0 || change.start.line !== undoLine) {
@@ -940,29 +971,5 @@ export class HistoryTracker {
    */
   public prevChangeInChangeList(): Position | VimError {
     return this.changeList.prevChangePosition();
-  }
-
-  /**
-   * Handy for debugging the undo/redo stack. + means our current position, check means active.
-   */
-  public toString(): string {
-    let result = '';
-
-    for (let i = 0; i < this.undoStack.getStackDepth(); i++) {
-      const step = this.undoStack.getHistoryStepAtIndex(i)!;
-
-      result += step.changes
-        .map((x) => `${x.before.replace(/\n/g, '\\n')} => ${x.after.replace(/\n/g, '\\n')}`)
-        .join('');
-      if (i === this.undoStack.getCurrentHistoryStepIndex()) {
-        result += '+';
-      }
-      if (step.isFinished) {
-        result += '✓';
-      }
-      result += '| ';
-    }
-
-    return result;
   }
 }

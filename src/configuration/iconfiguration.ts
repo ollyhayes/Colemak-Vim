@@ -87,6 +87,8 @@ export interface ITargetsConfiguration {
 }
 
 export interface IConfiguration {
+  [key: string]: any;
+
   /**
    * Use the system's clipboard when copying.
    */
@@ -292,6 +294,7 @@ export interface IConfiguration {
   /**
    * Show line numbers
    */
+  // eslint-disable-next-line id-denylist
   number: boolean;
 
   /**
