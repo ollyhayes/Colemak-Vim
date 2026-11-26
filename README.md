@@ -1,3 +1,14 @@
+> [!IMPORTANT]
+> **This fork is no longer needed.** Since [v1.29.0](https://github.com/VSCodeVim/Vim/blob/master/CHANGELOG.md#v1290-2024-12-04), the official [VSCodeVim](https://marketplace.visualstudio.com/items?itemName=vscodevim.vim) extension supports Vim's `langmap` option ([VSCodeVim/Vim#8541](https://github.com/VSCodeVim/Vim/pull/8541)) so I'd recommend switching to that, this repository is no longer maintained.
+>
+> To get the same mappings as this fork, uninstall Colemak-Vim, install VSCodeVim, and add this to your `settings.json`:
+>
+> ```json
+> "vim.langmap": "nekijlNEKIJL;jknleiJKNLEI"
+> ```
+>
+> **Note**: with Colmak-Vim custom key bindings worked on the colmak keys, but now they work on the qwerty keys. For example, "Shift+I goes to end of line" was `"before": ["I"], "after: ["$"]` and now needs to be `"before": ["L"], "after: ["$"]`.
+
 ## Colemak-Vim
 
 This is a fork of [VSCodeVim](https://github.com/VSCodeVim/Vim) that remaps the arrow keys at `hnei` instead of `hjkl` so they're in the correct place for the [Colemak](https://colemak.com/) keyboard layout.
